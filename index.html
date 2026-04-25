@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ONEBOX OMNI-STUDIO: THE DEFINITIVE EDITION</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --bg: #09090b; --panel: #111114; --accent: #3b82f6; --border: #27272a; --text: #f4f4f5; --success: #22c55e; --error: #ef4444; --purple: #a855f7; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; font-size: 11px; }
+
+        /* Telas Principais */
+        .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; }
+        .active-screen { display: flex; }
+
+        /* Login & Card Centers */
+        .card-center { margin: auto; background: var(--panel); padding: 30px; border-radius: 20px; border: 1px solid var(--border); width: 90%; max-width: 340px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+        /* Interface da Engine */
+        header { height: 60px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 10px; gap: 8px; overflow-x: auto; z-index: 100; }
+        .main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+        /* Painéis Laterais (Mobile Ready) */
+        .side-panel { position: absolute; top:0; bottom:0; left:0; width: 280px; background: var(--panel); z-index: 200; border-right: 1px solid var(--border); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(-100%); }
+        .inspector { position: absolute; top:0; bottom:0; right:0; width: 280px; background: var(--panel); z-index: 200; border-left: 1px solid var(--border); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(100%); }
+        .panel-open { transform: translateX(0); }
+
+        /* Viewport do Jogo */
+        #viewport-container { flex: 1; background: #000; position: relative; overflow: hidden; cursor: crosshair; }
+        #game-gui { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+        
+        /* Controles de Toque */
+        .mobile-controls { position: absolute; bottom: 120px; left: 20px; display: grid; grid-template-columns: repeat(3, 50px); gap: 10px; z-index: 60; display: none; }
+        .joy-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; backdrop-filter: blur(5px); }
+
+        /* Toolbox (Estilo Roblox/Unity) */
+        .toolbox { height: 95px; background: #0c0c0e; border-top: 1px solid var(--border); display: flex; gap: 10px; padding: 10px; overflow-x: auto; align-items: center; }
+        .tool-card { min-width: 75px; height: 70px; background: #1c1c21; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
+        .tool-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+        /* Botões e Inputs */
+        .btn { background: var(--accent); border: none; color: white; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn:active { transform: scale(0.95); }
+        input, select, textarea { width: 100%; background: #050505; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-family: inherit; }
+        textarea { height: 100px; font-family: monospace; color: #10b981; }
+
+        /* Overlay */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 150; display: none; backdrop-filter: blur(3px); }
+        .list-item { padding: 14px; background: #1c1c21; margin: 8px; border-radius: 10px; border: 1px solid transparent; transition: 0.2s; }
+        .list-item:hover { border-color: var(--accent); }
+        .active-item { background: var(--accent); color: white; }
+
+        /* Pixel Editor */
+        .window { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--border); padding: 20px; border-radius: 15px; z-index: 2000; display: none; width: 90%; max-width: 380px; }
+        .p-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 1px; background: #333; margin: 10px 0; border: 1px solid #444; }
+        .pixel { aspect-ratio: 1; background: #000; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen" class="screen active-screen">
+    <div class="card-center">
+        <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
+        <h1 style="color: var(--accent); margin:0; letter-spacing: -1px;">ONEBOX OMNI</h1>
+        <p style="opacity:0.4; margin-bottom: 25px;">Definitive Archive 2026</p>
+        <input type="text" id="username" placeholder="Seu Nickname">
+        <button class="btn" style="width:100%; margin-bottom:10px;" onclick="auth(false)">LOGAR NO STUDIO</button>
+        <button class="btn" style="width:100%; background:#27272a" onclick="auth(true)">GUEST MODE</button>
+    </div>
+</div>
+
+<div id="engine-screen" class="screen">
+    <header>
+        <button class="btn" style="background:#27272a" onclick="togglePanel('side-panel')">☰</button>
+        <button id="playBtn" class="btn" style="background: var(--success);" onclick="togglePlay()">▶ PLAY</button>
+        <select id="netMode" style="width:100px; margin:0;" onchange="project.settings.net = this.value">
+            <option value="single">Single</option>
+            <option value="multi">Multiplayer</option>
+        </select>
+        <button class="btn" style="background:var(--purple)" onclick="publishGame()">🚀 PUBLICAR</button>
+        <div style="flex:1"></div>
+        <button class="btn" style="background:#27272a" onclick="togglePanel('inspector')">⚙️</button>
+    </header>
+
+    <div class="main-content">
+        <div id="side-panel" class="side-panel">
+            <div style="padding:15px; font-weight:bold; color:var(--accent)">EXPLORER</div>
+            <div style="font-size: 9px; padding: 0 15px; opacity: 0.5;">CENAS</div>
+            <div id="scene-list"></div>
+            <button class="btn" style="width:90%; margin:10px 5%; font-size:10px;" onclick="addScene()">+ NOVA CENA</button>
+            <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
+            <div style="font-size: 9px; padding: 0 15px; opacity: 0.5;">OBJETOS</div>
+            <div id="hierarchy" style="overflow-y:auto; flex:1;"></div>
+            <button class="btn" style="width:100%; border-radius:0; background:var(--purple)" onclick="switchScreen('hub-screen')">🌐 GLOBAL HUB</button>
+        </div>
+
+        <div id="viewport-container">
+            <div id="game-gui"></div>
+            <div id="mobile-joy" class="mobile-controls">
+                <div style="grid-column: 2"><div class="joy-btn" ontouchstart="keys.w=true" ontouchend="keys.w=false">W</div></div>
+                <div class="joy-btn" ontouchstart="keys.a=true" ontouchend="keys.a=false">A</div>
+                <div class="joy-btn" ontouchstart="keys.s=true" ontouchend="keys.s=false">S</div>
+                <div class="joy-btn" ontouchstart="keys.d=true" ontouchend="keys.d=false">D</div>
+            </div>
+        </div>
+
+        <div id="inspector" class="inspector">
+            <div id="obj-props" style="padding:15px;">
+                <p style="opacity:0.3; text-align:center; margin-top:50px;">Selecione algo na hierarquia</p>
+            </div>
+        </div>
+        
+        <div id="overlay" class="overlay" onclick="closePanels()"></div>
+    </div>
+
+    <div class="toolbox">
+        <div class="tool-card" onclick="spawn('player')"><span>🕹️</span><b>Player</b></div>
+        <div class="tool-card" onclick="spawn('cube')"><span>📦</span><b>Bloco</b></div>
+        <div class="tool-card" onclick="spawn('lava')"><span>🔥</span><b>Lava</b></div>
+        <div class="tool-card" onclick="spawn('npc')"><span>🤖</span><b>NPC</b></div>
+        <div class="tool-card" onclick="spawn('sound')"><span>🔊</span><b>Som</b></div>
+        <div class="tool-card" onclick="openWin('sprite-win')"><span>🎨</span><b>Sprite</b></div>
+    </div>
+</div>
+
+<div id="hub-screen" class="screen">
+    <header>
+        <button class="btn" onclick="switchScreen('engine-screen')">⬅ VOLTAR</button>
+        <h2 style="margin-left:10px;">OneBox Community Hub</h2>
+    </header>
+    <div id="hub-grid" style="padding:20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:15px;"></div>
+</div>
+
+<div id="sprite-win" class="window">
+    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><b>Pixel Art Editor</b> <button onclick="closeWin('sprite-win')">×</button></div>
+    <input type="color" id="brush" value="#3b82f6" style="height:40px">
+    <div class="p-grid" id="p-grid"></div>
+    <button class="btn" style="width:100%" onclick="closeWin('sprite-win')">CONCLUIR ARTE</button>
+</div>
+
+<script>
+    // CONFIGURAÇÃO FIREBASE (DATABASE REALTIME)
+    const firebaseConfig = {
+        apiKey: "AIzaSyCHw9gH8El6UKSEgG8zorVraL5zWeTLSQM",
+        authDomain: "mmmmm-6cd19.firebaseapp.com",
+        databaseURL: "https://mmmmm-6cd19-default-rtdb.firebaseio.com",
+        projectId: "mmmmm-6cd19",
+        storageBucket: "mmmmm-6cd19.firebasestorage.app",
+        appId: "1:371990311720:web:63e3747f3239834c58561d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ESTADO GLOBAL DO PROJETO
+    let currentUser = { name: "Guest", isGuest: true };
+    let project = { audioUrl: "", settings: { net: 'single' }, activeScene: "Main", scenes: { "Main": { objects: [] } } };
+    let isPlaying = false, selectedId = null, keys = {}, shake = 0, runtimeProject = null;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    document.getElementById('viewport-container').appendChild(canvas);
+
+    // INICIALIZAR GRID PIXEL
+    const gridEl = document.getElementById('p-grid');
+    for(let i=0; i<256; i++){
+        const p = document.createElement('div'); p.className='pixel';
+        p.onclick = () => p.style.background = document.getElementById('brush').value;
+        gridEl.appendChild(p);
+    }
+
+    // --- AUTENTICAÇÃO ---
+    function auth(guest) {
+        const n = document.getElementById('username').value;
+        if(!guest && !n) return alert("Por favor, digite um nome!");
+        currentUser = { name: guest ? "G_" + Math.floor(Math.random()*99) : n, isGuest: guest };
+        switchScreen('engine-screen');
+    }
+
+    // --- SISTEMA DE OBJETOS (TOOLBOX & HIERARCHY) ---
+    function spawn(type) {
+        const id = "obj_" + Date.now();
+        const templates = {
+            'player': { color: "#3b82f6", script: "if(api.input('d')) this.x+=0.1; if(api.input('a')) this.x-=0.1; if(api.input('w')) this.y+=0.1; if(api.input('s')) this.y-=0.1;" },
+            'npc': { color: "#22c55e", script: "this.x += Math.sin(Date.now()/500)*0.05;" },
+            'lava': { color: "#ef4444", script: "api.dui('🔥 DANO', 0, -1.2); api.juice('shake', 0.5);" },
+            'sound': { color: "#fbbf24", script: "if(api.input('e')) api.playAudio();" }
+        };
+        const base = templates[type] || { color: "#555", script: "" };
+        const obj = { id, name: type.toUpperCase() + "_" + Math.floor(Math.random()*99), x:0, y:0, w:1, h:1, ...base, type };
+        project.scenes[project.activeScene].objects.push(obj);
+        updateHierarchy(); 
+    }
+
+    function select(id) {
+        selectedId = id;
+        const o = project.scenes[project.activeScene].objects.find(obj => obj.id === id);
+        if(!o) return;
+        document.getElementById('obj-props').innerHTML = `
+            <div style="background:var(--border); padding:10px; border-radius:8px; margin-bottom:15px;">
+                <b style="font-size:12px;">${o.name}</b>
+            </div>
+            <label>Posição X</label><input type="number" step="0.1" value="${o.x}" oninput="updateVal('${id}','x',this.value)">
+            <label>Posição Y</label><input type="number" step="0.1" value="${o.y}" oninput="updateVal('${id}','y',this.value)">
+            <label>Cor do Objeto</label><input type="color" value="${o.color}" oninput="updateVal('${id}','color',this.value)">
+            <label>Script (Comportamento)</label><textarea oninput="updateVal('${id}','script',this.value)">${o.script}</textarea>
+            <button class="btn" style="background:var(--error); width:100%; margin-top:10px;" onclick="deleteObj('${id}')">EXCLUIR OBJETO</button>
+        `;
+        togglePanel('inspector');
+    }
+
+    function updateVal(id, p, v) {
+        const o = project.scenes[project.activeScene].objects.find(obj => obj.id === id);
+        if(o) o[p] = (p==='script' || p==='color' || p==='name') ? v : parseFloat(v);
+        if(isPlaying && project.settings.net === 'multi') db.ref('omni_sync/'+id).update({[p]: o[p]});
+    }
+
+    function deleteObj(id) {
+        project.scenes[project.activeScene].objects = project.scenes[project.activeScene].objects.filter(o => o.id !== id);
+        updateHierarchy(); closePanels();
+    }
+
+    function updateHierarchy() {
+        document.getElementById('hierarchy').innerHTML = project.scenes[project.activeScene].objects.map(o => `
+            <div class="list-item" onclick="select('${o.id}')">📦 ${o.name}</div>
+        `).join('');
+    }
+
+    // --- CENAS ---
+    function updateSceneList() {
+        document.getElementById('scene-list').innerHTML = Object.keys(project.scenes).map(s => `
+            <div class="list-item ${s === project.activeScene ? 'active-item' : ''}" onclick="project.activeScene='${s}'; updateSceneList(); updateHierarchy();">🎬 ${s}</div>
+        `).join('');
+    }
+    function addScene() { const n = prompt("Nome da Nova Cena:"); if(n) { project.scenes[n] = {objects:[]}; updateSceneList(); } }
+
+    // --- SISTEMA DE PUBLICAÇÃO ---
+    async function publishGame() {
+        if(currentUser.isGuest) return alert("Convidados não podem publicar no Hub Global.");
+        const title = prompt("Título do Jogo:");
+        if(!title) return;
+        const soundUrl = prompt("URL de Áudio MP3 (Opcional):", project.audioUrl);
+        project.audioUrl = soundUrl || "";
+        
+        const gameData = {
+            title: title,
+            author: currentUser.name,
+            data: JSON.stringify(project),
+            timestamp: Date.now()
+        };
+        await db.ref('omni_hub_master').push(gameData);
+        alert("🚀 JOGO PUBLICADO COM SUCESSO!");
+    }
+
+    // --- GAME ENGINE LOOP (PLAY/STOP) ---
+    function loop() {
+        const view = document.getElementById('viewport-container');
+        canvas.width = view.clientWidth; canvas.height = view.clientHeight;
+        const data = isPlaying ? runtimeProject : project;
+        const scene = data.scenes[data.activeScene];
+
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        
+        // Shake logic
+        let ox = 0, oy = 0;
+        if(shake > 0) { ox = (Math.random()-0.5)*shake; oy = (Math.random()-0.5)*shake; shake *= 0.9; }
+
+        ctx.save(); ctx.translate(ox, oy);
+        
+        scene.objects.forEach(o => {
+            const sx = o.x * 40 + (canvas.width/2);
+            const sy = -o.y * 40 + (canvas.height/2);
+            
+            if(o.type !== 'empty') {
+                ctx.fillStyle = o.color; ctx.fillRect(sx, sy, o.w*40, o.h*40);
+            }
+
+            if(isPlaying) {
+                const api = {
+                    input: (k) => keys[k],
+                    juice: (t, p) => { if(t==='shake') shake = p; },
+                    dui: (t, x, y) => { ctx.fillStyle="white"; ctx.textAlign="center"; ctx.fillText(t, sx+(o.w*20)+x, sy+y); },
+                    playAudio: () => { if(project.audioUrl) new Audio(project.audioUrl).play(); }
+                };
+                try { new Function('api', o.script).bind(o)(api); } catch(e){}
+                
+                // Sync Multiplayer
+                if(project.settings.net === 'multi' && (keys.w||keys.a||keys.s||keys.d)) {
+                    db.ref('omni_sync/'+o.id).update({x: o.x, y: o.y});
+                }
+            }
+        });
+        ctx.restore();
+        requestAnimationFrame(loop);
+    }
+
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        const btn = document.getElementById('playBtn');
+        if(isPlaying) {
+            runtimeProject = JSON.parse(JSON.stringify(project));
+            btn.innerText = "⏹ STOP"; btn.style.background = "var(--error)";
+            document.getElementById('mobile-joy').style.display = 'grid';
+            if(project.settings.net === 'multi') {
+                db.ref('omni_sync').on('value', s => {
+                    const d = s.val();
+                    if(d) runtimeProject.scenes[runtimeProject.activeScene].objects.forEach(o => {
+                        if(d[o.id]) { o.x = d[o.id].x; o.y = d[o.id].y; }
+                    });
+                });
+            }
+        } else {
+            btn.innerText = "▶ PLAY"; btn.style.background = "var(--success)";
+            document.getElementById('mobile-joy').style.display = 'none';
+            db.ref('omni_sync').off();
+        }
+    }
+
+    // --- UI & NAVIGATION ---
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
+        if(id==='hub-screen') loadHub();
+    }
+
+    function loadHub() {
+        db.ref('omni_hub_master').limitToLast(20).once('value', s => {
+            const grid = document.getElementById('hub-grid'); grid.innerHTML = "";
+            if(s.val()) Object.entries(s.val()).forEach(([id, g]) => {
+                const c = document.createElement('div'); c.className = "list-item";
+                c.innerHTML = `<b style="font-size:14px; color:var(--accent)">${g.title}</b><br><small>Criado por: ${g.author}</small><br><br><button class="btn" style="width:100%; padding:5px;">JOGAR</button>`;
+                c.onclick = () => { project = JSON.parse(g.data); switchScreen('engine-screen'); updateSceneList(); updateHierarchy(); };
+                grid.appendChild(c);
+            });
+        });
+    }
+
+    function togglePanel(id) {
+        const el = document.getElementById(id);
+        const isOpen = el.classList.contains('panel-open');
+        closePanels();
+        if(!isOpen) {
+            el.classList.add('panel-open');
+            document.getElementById('overlay').style.display = 'block';
+        }
+    }
+
+    function closePanels() {
+        document.querySelectorAll('.side-panel, .inspector').forEach(p => p.classList.remove('panel-open'));
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    function openWin(id) { document.getElementById(id).style.display = 'block'; }
+    function closeWin(id) { document.getElementById(id).style.display = 'none'; }
+
+    // INPUTS
+    window.onkeydown = e => keys[e.key.toLowerCase()] = true;
+    window.onkeyup = e => keys[e.key.toLowerCase()] = false;
+    
+    // START
+    updateSceneList(); updateHierarchy(); loop();
+</script>
+</body>
+</html>
