@@ -3,367 +3,439 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ONEBOX OMNI-STUDIO: THE DEFINITIVE EDITION</title>
+    <title>ONEBOX OMEGA | HYBRID DIMENSION</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 
     <style>
-        :root { --bg: #09090b; --panel: #111114; --accent: #3b82f6; --border: #27272a; --text: #f4f4f5; --success: #22c55e; --error: #ef4444; --purple: #a855f7; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; font-size: 11px; }
+        :root { --bg: #020204; --panel: #0a0a0f; --accent: #00e5ff; --border: #1a1a24; --text: #f0f0f5; --success: #39ff14; --chat: #1e1e2d; --dim: #ff0055; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; outline: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; font-size: 12px; }
 
-        /* Telas Principais */
+        /* HEADER E TELAS */
+        header { height: 55px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; gap: 10px; z-index: 1000; box-shadow: 0 2px 15px rgba(0,229,255,0.2); }
         .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; }
         .active-screen { display: flex; }
 
-        /* Login & Card Centers */
-        .card-center { margin: auto; background: var(--panel); padding: 30px; border-radius: 20px; border: 1px solid var(--border); width: 90%; max-width: 340px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-
-        /* Interface da Engine */
-        header { height: 60px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 10px; gap: 8px; overflow-x: auto; z-index: 100; }
-        .main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-
-        /* Painéis Laterais (Mobile Ready) */
-        .side-panel { position: absolute; top:0; bottom:0; left:0; width: 280px; background: var(--panel); z-index: 200; border-right: 1px solid var(--border); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(-100%); }
-        .inspector { position: absolute; top:0; bottom:0; right:0; width: 280px; background: var(--panel); z-index: 200; border-left: 1px solid var(--border); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(100%); }
-        .panel-open { transform: translateX(0); }
-
-        /* Viewport do Jogo */
-        #viewport-container { flex: 1; background: #000; position: relative; overflow: hidden; cursor: crosshair; }
-        #game-gui { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+        /* VIEWPORT & SANDBOX */
+        .main-content { display: flex; flex: 1; position: relative; overflow: hidden; }
+        #render-target, #player-target { flex: 1; position: relative; background: #000; }
+        .gui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 500; }
         
-        /* Controles de Toque */
-        .mobile-controls { position: absolute; bottom: 120px; left: 20px; display: grid; grid-template-columns: repeat(3, 50px); gap: 10px; z-index: 60; display: none; }
-        .joy-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; backdrop-filter: blur(5px); }
+        /* CHAT MULTIPLAYER (IM STYLE) */
+        #chat-box { position: absolute; bottom: 80px; left: 10px; width: 280px; height: 180px; background: rgba(0,0,0,0.7); border: 1px solid var(--accent); border-radius: 12px; display: none; flex-direction: column; pointer-events: auto; z-index: 600; backdrop-filter: blur(5px); }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 10px; color: #fff; font-size: 12px; display: flex; flex-direction: column; gap: 5px; }
+        #chat-input { background: #000; border: none; border-top: 1px solid var(--accent); color: #fff; padding: 10px; border-radius: 0 0 12px 12px; }
 
-        /* Toolbox (Estilo Roblox/Unity) */
-        .toolbox { height: 95px; background: #0c0c0e; border-top: 1px solid var(--border); display: flex; gap: 10px; padding: 10px; overflow-x: auto; align-items: center; }
-        .tool-card { min-width: 75px; height: 70px; background: #1c1c21; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
-        .tool-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        /* GUI MOBILE */
+        .mobile-btn { position: absolute; pointer-events: auto; background: rgba(0,229,255,0.1); border: 2px solid var(--accent); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; backdrop-filter: blur(4px); user-select: none; box-shadow: 0 0 15px rgba(0,229,255,0.3); }
+        .mobile-btn:active { background: var(--accent); color: #000; transform: scale(0.9); }
 
-        /* Botões e Inputs */
-        .btn { background: var(--accent); border: none; color: white; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; }
-        .btn:active { transform: scale(0.95); }
-        input, select, textarea { width: 100%; background: #050505; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-family: inherit; }
-        textarea { height: 100px; font-family: monospace; color: #10b981; }
+        /* EDITOR: PAINÉIS E HUB */
+        .side-bar { width: 260px; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; z-index: 800; }
+        .inspector { width: 280px; background: var(--panel); border-left: 1px solid var(--border); padding: 15px; overflow-y: auto; z-index: 800; }
+        .toolbox { height: 80px; background: var(--panel); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 10px; gap: 10px; overflow-x: auto; }
+        #hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; padding: 25px; overflow-y: auto; }
+        .card { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,229,255,0.1); cursor: pointer; transition: 0.2s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,229,255,0.3); }
 
-        /* Overlay */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 150; display: none; backdrop-filter: blur(3px); }
-        .list-item { padding: 14px; background: #1c1c21; margin: 8px; border-radius: 10px; border: 1px solid transparent; transition: 0.2s; }
-        .list-item:hover { border-color: var(--accent); }
-        .active-item { background: var(--accent); color: white; }
-
-        /* Pixel Editor */
-        .window { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--border); padding: 20px; border-radius: 15px; z-index: 2000; display: none; width: 90%; max-width: 380px; }
-        .p-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 1px; background: #333; margin: 10px 0; border: 1px solid #444; }
-        .pixel { aspect-ratio: 1; background: #000; }
+        /* UI ELEMENTS */
+        .btn { background: var(--accent); color: #000; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.2); }
+        .list-item { padding: 10px; background: #111118; margin-bottom: 5px; border-radius: 6px; border-left: 3px solid transparent; cursor: pointer; font-family: monospace; }
+        .list-item:hover { border-left-color: var(--accent); background: #1a1a24; }
+        input, select, textarea { width: 100%; background: #000; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-family: monospace; }
+        textarea { height: 120px; color: var(--success); }
+        
+        .dim-badge { background: var(--dim); color: white; padding: 3px 6px; border-radius: 4px; font-size: 9px; vertical-align: top; margin-left: 5px; }
     </style>
 </head>
 <body>
 
 <div id="login-screen" class="screen active-screen">
-    <div class="card-center">
-        <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
-        <h1 style="color: var(--accent); margin:0; letter-spacing: -1px;">ONEBOX OMNI</h1>
-        <p style="opacity:0.4; margin-bottom: 25px;">Definitive Archive 2026</p>
-        <input type="text" id="username" placeholder="Seu Nickname">
-        <button class="btn" style="width:100%; margin-bottom:10px;" onclick="auth(false)">LOGAR NO STUDIO</button>
-        <button class="btn" style="width:100%; background:#27272a" onclick="auth(true)">GUEST MODE</button>
-    </div>
-</div>
-
-<div id="engine-screen" class="screen">
-    <header>
-        <button class="btn" style="background:#27272a" onclick="togglePanel('side-panel')">☰</button>
-        <button id="playBtn" class="btn" style="background: var(--success);" onclick="togglePlay()">▶ PLAY</button>
-        <select id="netMode" style="width:100px; margin:0;" onchange="project.settings.net = this.value">
-            <option value="single">Single</option>
-            <option value="multi">Multiplayer</option>
-        </select>
-        <button class="btn" style="background:var(--purple)" onclick="publishGame()">🚀 PUBLICAR</button>
-        <div style="flex:1"></div>
-        <button class="btn" style="background:#27272a" onclick="togglePanel('inspector')">⚙️</button>
-    </header>
-
-    <div class="main-content">
-        <div id="side-panel" class="side-panel">
-            <div style="padding:15px; font-weight:bold; color:var(--accent)">EXPLORER</div>
-            <div style="font-size: 9px; padding: 0 15px; opacity: 0.5;">CENAS</div>
-            <div id="scene-list"></div>
-            <button class="btn" style="width:90%; margin:10px 5%; font-size:10px;" onclick="addScene()">+ NOVA CENA</button>
-            <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
-            <div style="font-size: 9px; padding: 0 15px; opacity: 0.5;">OBJETOS</div>
-            <div id="hierarchy" style="overflow-y:auto; flex:1;"></div>
-            <button class="btn" style="width:100%; border-radius:0; background:var(--purple)" onclick="switchScreen('hub-screen')">🌐 GLOBAL HUB</button>
-        </div>
-
-        <div id="viewport-container">
-            <div id="game-gui"></div>
-            <div id="mobile-joy" class="mobile-controls">
-                <div style="grid-column: 2"><div class="joy-btn" ontouchstart="keys.w=true" ontouchend="keys.w=false">W</div></div>
-                <div class="joy-btn" ontouchstart="keys.a=true" ontouchend="keys.a=false">A</div>
-                <div class="joy-btn" ontouchstart="keys.s=true" ontouchend="keys.s=false">S</div>
-                <div class="joy-btn" ontouchstart="keys.d=true" ontouchend="keys.d=false">D</div>
-            </div>
-        </div>
-
-        <div id="inspector" class="inspector">
-            <div id="obj-props" style="padding:15px;">
-                <p style="opacity:0.3; text-align:center; margin-top:50px;">Selecione algo na hierarquia</p>
-            </div>
-        </div>
-        
-        <div id="overlay" class="overlay" onclick="closePanels()"></div>
-    </div>
-
-    <div class="toolbox">
-        <div class="tool-card" onclick="spawn('player')"><span>🕹️</span><b>Player</b></div>
-        <div class="tool-card" onclick="spawn('cube')"><span>📦</span><b>Bloco</b></div>
-        <div class="tool-card" onclick="spawn('lava')"><span>🔥</span><b>Lava</b></div>
-        <div class="tool-card" onclick="spawn('npc')"><span>🤖</span><b>NPC</b></div>
-        <div class="tool-card" onclick="spawn('sound')"><span>🔊</span><b>Som</b></div>
-        <div class="tool-card" onclick="openWin('sprite-win')"><span>🎨</span><b>Sprite</b></div>
+    <div style="margin: auto; text-align: center; background: var(--panel); padding: 50px; border: 1px solid var(--accent); border-radius: 16px; box-shadow: 0 0 50px rgba(0,229,255,0.15);">
+        <h1 style="color: var(--accent); font-size: 36px; margin-bottom: 5px;">ONEBOX OMEGA</h1>
+        <p style="opacity: 0.6; margin-bottom: 30px; letter-spacing: 2px;">HYBRID 2D/3D ENGINE</p>
+        <input type="text" id="username" placeholder="Seu Nick Dev">
+        <button class="btn" style="width: 100%; margin-bottom: 12px;" onclick="initApp('engine')">ABRIR STUDIO</button>
+        <button class="btn" style="width: 100%; background: #1a1a24; color: #fff;" onclick="initApp('hub')">ACESSAR MULTIVERSO</button>
     </div>
 </div>
 
 <div id="hub-screen" class="screen">
     <header>
-        <button class="btn" onclick="switchScreen('engine-screen')">⬅ VOLTAR</button>
-        <h2 style="margin-left:10px;">OneBox Community Hub</h2>
+        <button class="btn" style="background: #1a1a24; color: #fff;" onclick="switchScreen('login-screen')">LOGOUT</button>
+        <h2 style="margin-left: 10px; color: var(--success);">NUVEM DE JOGOS</h2>
+        <div style="flex:1"></div>
+        <button class="btn" onclick="switchScreen('engine-screen')">MEU STUDIO</button>
     </header>
-    <div id="hub-grid" style="padding:20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:15px;"></div>
+    <div id="hub-grid"></div>
 </div>
 
-<div id="sprite-win" class="window">
-    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><b>Pixel Art Editor</b> <button onclick="closeWin('sprite-win')">×</button></div>
-    <input type="color" id="brush" value="#3b82f6" style="height:40px">
-    <div class="p-grid" id="p-grid"></div>
-    <button class="btn" style="width:100%" onclick="closeWin('sprite-win')">CONCLUIR ARTE</button>
+<div id="player-screen" class="screen">
+    <div style="position: absolute; top: 15px; left: 15px; z-index: 1000; display: flex; gap: 10px;">
+        <button class="btn" style="background: #ff0055; color: white;" onclick="exitPlayer()">✕ SAIR DO JOGO</button>
+        <span id="player-status" style="background: rgba(0,0,0,0.7); padding: 10px; border-radius: 6px; color: var(--success); font-weight: bold; border: 1px solid var(--success);">ONLINE</span>
+    </div>
+    
+    <div id="chat-box">
+        <div id="chat-messages"></div>
+        <input type="text" id="chat-input" placeholder="Chat Global..." onkeypress="if(event.key==='Enter') sendChat()">
+    </div>
+
+    <div id="player-target">
+        <div id="player-gui" class="gui-layer"></div>
+    </div>
+</div>
+
+<div id="engine-screen" class="screen">
+    <header>
+        <span style="color: var(--accent); font-weight: bold; font-size: 16px;">STUDIO</span>
+        
+        <select id="dimension-mode" style="width: 130px; margin: 0; padding: 6px; background: var(--dim); color: white; border: none; font-weight: bold;" onchange="toggleDimension()">
+            <option value="3d">🌍 MODO 3D</option>
+            <option value="2d">👾 MODO 2D</option>
+        </select>
+
+        <button class="btn" style="background: var(--success); color: #000;" onclick="testGame()">▶ TESTAR</button>
+        <button class="btn" style="background: #9d00ff; color: #fff;" onclick="publish()">🚀 PUBLICAR</button>
+        <select id="net-mode" style="width: 130px; margin: 0; padding: 6px;">
+            <option value="single">Singleplayer</option>
+            <option value="multi">Multiplayer ON</option>
+        </select>
+        <div style="flex:1"></div>
+        <button class="btn" style="background: #1a1a24; color: #fff;" onclick="switchScreen('hub-screen')">HUB</button>
+    </header>
+
+    <div class="main-content">
+        <div class="side-bar">
+            <div style="padding: 15px; font-weight: bold; color: var(--accent); border-bottom: 1px solid var(--border);">HIERARQUIA</div>
+            <div id="hierarchy" style="padding: 10px;"></div>
+        </div>
+
+        <div id="render-target">
+            <div id="editor-gui" class="gui-layer"></div>
+        </div>
+
+        <div class="inspector" id="inspector">
+            <p style="opacity: 0.3; text-align: center; margin-top: 50px;">Selecione algo</p>
+        </div>
+    </div>
+
+    <div class="toolbox">
+        <button class="btn" onclick="spawn('player')">🧍 PLAYER</button>
+        <button class="btn" onclick="spawn('voxel')">🧱 BLOCO/CHÃO</button>
+        <button class="btn" onclick="spawn('sprite')">👻 SPRITE</button>
+        <button class="btn" onclick="spawn('ui_btn')">🔘 BOTÃO UI</button>
+        <div style="flex:1"></div>
+        <button class="btn" style="background:#1a1a24; color:#fff;" onclick="generateWorld()">🌍 GERAR MUNDO</button>
+    </div>
 </div>
 
 <script>
-    // CONFIGURAÇÃO FIREBASE (DATABASE REALTIME)
-    const firebaseConfig = {
-        apiKey: "AIzaSyCHw9gH8El6UKSEgG8zorVraL5zWeTLSQM",
-        authDomain: "mmmmm-6cd19.firebaseapp.com",
-        databaseURL: "https://mmmmm-6cd19-default-rtdb.firebaseio.com",
-        projectId: "mmmmm-6cd19",
-        storageBucket: "mmmmm-6cd19.firebasestorage.app",
-        appId: "1:371990311720:web:63e3747f3239834c58561d"
-    };
+    // --- 1. FIREBASE CONFIG ---
+    const firebaseConfig = { apiKey: "AIzaSyCHw9gH8El6UKSEgG8zorVraL5zWeTLSQM", databaseURL: "https://mmmmm-6cd19-default-rtdb.firebaseio.com", projectId: "mmmmm-6cd19" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ESTADO GLOBAL DO PROJETO
-    let currentUser = { name: "Guest", isGuest: true };
-    let project = { audioUrl: "", settings: { net: 'single' }, activeScene: "Main", scenes: { "Main": { objects: [] } } };
-    let isPlaying = false, selectedId = null, keys = {}, shake = 0, runtimeProject = null;
+    // --- 2. CORE STATE ---
+    let currentUser = { name: "Guest" };
+    let project = { objects: [], is2D: false }, runtimeData = [];
+    let isPlaying = false, keys = {}, gameId = "local";
+    let scene, camera, renderer, clock, myPlayerId = null, gridHelper;
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    document.getElementById('viewport-container').appendChild(canvas);
-
-    // INICIALIZAR GRID PIXEL
-    const gridEl = document.getElementById('p-grid');
-    for(let i=0; i<256; i++){
-        const p = document.createElement('div'); p.className='pixel';
-        p.onclick = () => p.style.background = document.getElementById('brush').value;
-        gridEl.appendChild(p);
+    function initApp(target) {
+        currentUser.name = document.getElementById('username').value || "Dev_" + Math.floor(Math.random()*9999);
+        myPlayerId = "p_" + Date.now();
+        initEngine();
+        switchScreen(target === 'engine' ? 'engine-screen' : 'hub-screen');
     }
 
-    // --- AUTENTICAÇÃO ---
-    function auth(guest) {
-        const n = document.getElementById('username').value;
-        if(!guest && !n) return alert("Por favor, digite um nome!");
-        currentUser = { name: guest ? "G_" + Math.floor(Math.random()*99) : n, isGuest: guest };
-        switchScreen('engine-screen');
-    }
+    // --- 3. ENGINE HÍBRIDA (THREE.JS) ---
+    function initEngine() {
+        if(scene) return;
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020204);
 
-    // --- SISTEMA DE OBJETOS (TOOLBOX & HIERARCHY) ---
-    function spawn(type) {
-        const id = "obj_" + Date.now();
-        const templates = {
-            'player': { color: "#3b82f6", script: "if(api.input('d')) this.x+=0.1; if(api.input('a')) this.x-=0.1; if(api.input('w')) this.y+=0.1; if(api.input('s')) this.y-=0.1;" },
-            'npc': { color: "#22c55e", script: "this.x += Math.sin(Date.now()/500)*0.05;" },
-            'lava': { color: "#ef4444", script: "api.dui('🔥 DANO', 0, -1.2); api.juice('shake', 0.5);" },
-            'sound': { color: "#fbbf24", script: "if(api.input('e')) api.playAudio();" }
-        };
-        const base = templates[type] || { color: "#555", script: "" };
-        const obj = { id, name: type.toUpperCase() + "_" + Math.floor(Math.random()*99), x:0, y:0, w:1, h:1, ...base, type };
-        project.scenes[project.activeScene].objects.push(obj);
-        updateHierarchy(); 
-    }
-
-    function select(id) {
-        selectedId = id;
-        const o = project.scenes[project.activeScene].objects.find(obj => obj.id === id);
-        if(!o) return;
-        document.getElementById('obj-props').innerHTML = `
-            <div style="background:var(--border); padding:10px; border-radius:8px; margin-bottom:15px;">
-                <b style="font-size:12px;">${o.name}</b>
-            </div>
-            <label>Posição X</label><input type="number" step="0.1" value="${o.x}" oninput="updateVal('${id}','x',this.value)">
-            <label>Posição Y</label><input type="number" step="0.1" value="${o.y}" oninput="updateVal('${id}','y',this.value)">
-            <label>Cor do Objeto</label><input type="color" value="${o.color}" oninput="updateVal('${id}','color',this.value)">
-            <label>Script (Comportamento)</label><textarea oninput="updateVal('${id}','script',this.value)">${o.script}</textarea>
-            <button class="btn" style="background:var(--error); width:100%; margin-top:10px;" onclick="deleteObj('${id}')">EXCLUIR OBJETO</button>
-        `;
-        togglePanel('inspector');
-    }
-
-    function updateVal(id, p, v) {
-        const o = project.scenes[project.activeScene].objects.find(obj => obj.id === id);
-        if(o) o[p] = (p==='script' || p==='color' || p==='name') ? v : parseFloat(v);
-        if(isPlaying && project.settings.net === 'multi') db.ref('omni_sync/'+id).update({[p]: o[p]});
-    }
-
-    function deleteObj(id) {
-        project.scenes[project.activeScene].objects = project.scenes[project.activeScene].objects.filter(o => o.id !== id);
-        updateHierarchy(); closePanels();
-    }
-
-    function updateHierarchy() {
-        document.getElementById('hierarchy').innerHTML = project.scenes[project.activeScene].objects.map(o => `
-            <div class="list-item" onclick="select('${o.id}')">📦 ${o.name}</div>
-        `).join('');
-    }
-
-    // --- CENAS ---
-    function updateSceneList() {
-        document.getElementById('scene-list').innerHTML = Object.keys(project.scenes).map(s => `
-            <div class="list-item ${s === project.activeScene ? 'active-item' : ''}" onclick="project.activeScene='${s}'; updateSceneList(); updateHierarchy();">🎬 ${s}</div>
-        `).join('');
-    }
-    function addScene() { const n = prompt("Nome da Nova Cena:"); if(n) { project.scenes[n] = {objects:[]}; updateSceneList(); } }
-
-    // --- SISTEMA DE PUBLICAÇÃO ---
-    async function publishGame() {
-        if(currentUser.isGuest) return alert("Convidados não podem publicar no Hub Global.");
-        const title = prompt("Título do Jogo:");
-        if(!title) return;
-        const soundUrl = prompt("URL de Áudio MP3 (Opcional):", project.audioUrl);
-        project.audioUrl = soundUrl || "";
+        camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
         
-        const gameData = {
-            title: title,
-            author: currentUser.name,
-            data: JSON.stringify(project),
-            timestamp: Date.now()
-        };
-        await db.ref('omni_hub_master').push(gameData);
-        alert("🚀 JOGO PUBLICADO COM SUCESSO!");
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.shadowMap.enabled = true;
+        
+        gridHelper = new THREE.GridHelper(50, 50, 0x00e5ff, 0x1a1a24);
+        scene.add(gridHelper);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+
+        clock = new THREE.Clock();
+        toggleDimension(); // Configura a câmera inicial
+        animate();
     }
 
-    // --- GAME ENGINE LOOP (PLAY/STOP) ---
-    function loop() {
-        const view = document.getElementById('viewport-container');
-        canvas.width = view.clientWidth; canvas.height = view.clientHeight;
-        const data = isPlaying ? runtimeProject : project;
-        const scene = data.scenes[data.activeScene];
-
-        ctx.clearRect(0,0,canvas.width, canvas.height);
-        
-        // Shake logic
-        let ox = 0, oy = 0;
-        if(shake > 0) { ox = (Math.random()-0.5)*shake; oy = (Math.random()-0.5)*shake; shake *= 0.9; }
-
-        ctx.save(); ctx.translate(ox, oy);
-        
-        scene.objects.forEach(o => {
-            const sx = o.x * 40 + (canvas.width/2);
-            const sy = -o.y * 40 + (canvas.height/2);
-            
-            if(o.type !== 'empty') {
-                ctx.fillStyle = o.color; ctx.fillRect(sx, sy, o.w*40, o.h*40);
-            }
-
-            if(isPlaying) {
-                const api = {
-                    input: (k) => keys[k],
-                    juice: (t, p) => { if(t==='shake') shake = p; },
-                    dui: (t, x, y) => { ctx.fillStyle="white"; ctx.textAlign="center"; ctx.fillText(t, sx+(o.w*20)+x, sy+y); },
-                    playAudio: () => { if(project.audioUrl) new Audio(project.audioUrl).play(); }
-                };
-                try { new Function('api', o.script).bind(o)(api); } catch(e){}
-                
-                // Sync Multiplayer
-                if(project.settings.net === 'multi' && (keys.w||keys.a||keys.s||keys.d)) {
-                    db.ref('omni_sync/'+o.id).update({x: o.x, y: o.y});
-                }
-            }
-        });
-        ctx.restore();
-        requestAnimationFrame(loop);
-    }
-
-    function togglePlay() {
-        isPlaying = !isPlaying;
-        const btn = document.getElementById('playBtn');
-        if(isPlaying) {
-            runtimeProject = JSON.parse(JSON.stringify(project));
-            btn.innerText = "⏹ STOP"; btn.style.background = "var(--error)";
-            document.getElementById('mobile-joy').style.display = 'grid';
-            if(project.settings.net === 'multi') {
-                db.ref('omni_sync').on('value', s => {
-                    const d = s.val();
-                    if(d) runtimeProject.scenes[runtimeProject.activeScene].objects.forEach(o => {
-                        if(d[o.id]) { o.x = d[o.id].x; o.y = d[o.id].y; }
-                    });
-                });
-            }
+    // --- 4. SISTEMA DIMENSIONAL (2D vs 3D) ---
+    function toggleDimension(forceValue = null) {
+        if(forceValue !== null) {
+            project.is2D = forceValue;
+            document.getElementById('dimension-mode').value = forceValue ? '2d' : '3d';
         } else {
-            btn.innerText = "▶ PLAY"; btn.style.background = "var(--success)";
-            document.getElementById('mobile-joy').style.display = 'none';
-            db.ref('omni_sync').off();
+            project.is2D = document.getElementById('dimension-mode').value === '2d';
+        }
+
+        if(project.is2D) {
+            // MODO 2D: Câmera de frente, grid em pé
+            camera.position.set(0, 0, 15);
+            camera.lookAt(0, 0, 0);
+            gridHelper.rotation.x = Math.PI / 2; // Levanta o grid
+            scene.fog = null;
+        } else {
+            // MODO 3D: Câmera isométrica, grid no chão
+            camera.position.set(0, 5, 10);
+            camera.lookAt(0, 0, 0);
+            gridHelper.rotation.x = 0; // Deita o grid
+            scene.fog = new THREE.Fog(0x020204, 10, 50);
+        }
+        
+        // Atualiza inspector caso esteja aberto
+        const activeObj = project.objects.find(o => document.getElementById('inspector').innerHTML.includes(o.id));
+        if(activeObj) inspect(activeObj.id);
+    }
+
+    // --- 5. ENTIDADES ADAPTÁVEIS ---
+    function spawn(type, x=0, y=0, z=0) {
+        const id = "obj_" + Date.now();
+        // O Script do Player MUDA dependendo se é 2D ou 3D no momento da criação!
+        const playerScript3D = "api.move(api.input('d')?0.1:api.input('a')?-0.1:0, 0, api.input('s')?0.1:api.input('w')?-0.1:0);\napi.camFollow();";
+        const playerScript2D = "api.move(api.input('d')?0.1:api.input('a')?-0.1:0, api.input('w')?0.1:api.input('s')?-0.1:0, 0);\napi.camFollow();";
+        
+        const templates = {
+            'player': { color: "#39ff14", script: project.is2D ? playerScript2D : playerScript3D },
+            'voxel': { color: "#444455", script: "" },
+            'sprite': { color: "#ffffff", script: "api.lookAtCam();" },
+            'ui_btn': { name: "PULO", x: 80, y: 80, script: "api.chat('Executei uma ação!');" }
+        };
+        
+        const base = templates[type] || { color: "#ff0055", script: "" };
+        // Em 2D, o Y padrão é 0 (frente). Em 3D, Y padrão é 0.5 (chão).
+        let startY = project.is2D ? 0 : (type==='player'||type==='voxel' ? 0.5 : 1);
+        
+        project.objects.push({ id, type, name: type.toUpperCase(), x, y: startY, z, rx:0, ry:0, rz:0, ...base });
+        refreshEditor(); sync3D();
+    }
+
+    function generateWorld() {
+        for(let i=0; i<20; i++) {
+            if(project.is2D) spawn('voxel', (Math.random()-0.5)*20, (Math.random()-0.5)*20, 0); // Espalha na parede
+            else spawn('voxel', (Math.random()-0.5)*20, 0.5, (Math.random()-0.5)*20); // Espalha no chão
         }
     }
 
-    // --- UI & NAVIGATION ---
-    function switchScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-        document.getElementById(id).classList.add('active-screen');
-        if(id==='hub-screen') loadHub();
+    function sync3D() {
+        project.objects.forEach(o => {
+            if(o.mesh) scene.remove(o.mesh);
+            if(o.type === 'ui_btn') return;
+
+            let geo = (o.type === 'sprite') ? new THREE.PlaneGeometry(1, 1) : new THREE.BoxGeometry(1,1,1);
+            let mat = new THREE.MeshStandardMaterial({ color: o.color, side: o.type === 'sprite' ? THREE.DoubleSide : THREE.FrontSide });
+            
+            o.mesh = new THREE.Mesh(geo, mat);
+            scene.add(o.mesh);
+        });
+    }
+
+    // --- 6. INSPECTOR INTELIGENTE ---
+    function refreshEditor() {
+        document.getElementById('hierarchy').innerHTML = project.objects.map(o => `
+            <div class="list-item" onclick="inspect('${o.id}')">▪ ${o.name} <span style="opacity:0.3">(${o.type})</span></div>
+        `).join('');
+    }
+
+    function inspect(id) {
+        const o = project.objects.find(x => x.id === id);
+        if(!o) return;
+        const isUI = o.type === 'ui_btn';
+        
+        // Se for 2D, esconde o campo Z para não confundir o criador!
+        const zField = (project.is2D || isUI) ? '' : `<label>Eixo Z (Profundidade)</label><input type="number" step="0.5" value="${o.z}" oninput="updateVal('${id}','z',this.value)">`;
+
+        document.getElementById('inspector').innerHTML = `
+            <h3 style="color:var(--accent);">${o.name}</h3><br>
+            <label>Nome</label><input type="text" value="${o.name}" oninput="updateVal('${id}','name',this.value)">
+            <label>Cor (Hex)</label><input type="color" value="${o.color}" oninput="updateVal('${id}','color',this.value)">
+            <label>${isUI?'Tela X':'Eixo X'}</label><input type="number" step="0.5" value="${o.x}" oninput="updateVal('${id}','x',this.value)">
+            <label>${isUI?'Tela Y':'Eixo Y'}</label><input type="number" step="0.5" value="${o.y}" oninput="updateVal('${id}','y',this.value)">
+            ${zField}
+            <label>Script (API)</label><textarea oninput="updateVal('${id}','script',this.value)">${o.script}</textarea>
+            <button class="btn" style="width:100%; background:#ff0055; margin-top:10px; color:#fff;" onclick="del('${id}')">EXCLUIR</button>
+        `;
+    }
+
+    function updateVal(id, p, v) { const o = project.objects.find(x => x.id === id); if(o) { o[p] = (p==='color'||p==='script'||p==='name') ? v : parseFloat(v); sync3D(); } }
+    function del(id) { project.objects = project.objects.filter(x => x.id !== id); refreshEditor(); sync3D(); document.getElementById('inspector').innerHTML=""; }
+
+    // --- 7. SANDBOX MULTIPLAYER ---
+    function testGame(data = null, gId = "local", force2D = null) {
+        isPlaying = true;
+        gameId = gId;
+        runtimeData = JSON.parse(JSON.stringify(data || project.objects));
+        
+        // Aplica a dimensão correta se viemos do Hub
+        if(force2D !== null) toggleDimension(force2D);
+
+        sync3DRuntime();
+        renderGUI('player-gui');
+        
+        const isMulti = document.getElementById('net-mode').value === 'multi' || data !== null;
+        document.getElementById('chat-box').style.display = isMulti ? "flex" : "none";
+        
+        if(isMulti) {
+            db.ref('omni_hybrid/'+gameId+'/players/'+myPlayerId).set({ name: currentUser.name, x:0, y: project.is2D?0:1, z:0 });
+            db.ref('omni_hybrid/'+gameId+'/chat').on('child_added', s => addChat(s.val().n, s.val().m));
+            db.ref('omni_hybrid/'+gameId+'/players').on('value', s => updateNetPlayers(s.val()));
+        }
+        
+        switchScreen('player-screen');
+    }
+
+    function exitPlayer() {
+        isPlaying = false;
+        if(gameId !== "local") { db.ref('omni_hybrid/'+gameId+'/players/'+myPlayerId).remove(); db.ref('omni_hybrid/'+gameId).off(); }
+        switchScreen('engine-screen');
+        sync3D(); 
+    }
+
+    function sync3DRuntime() {
+        scene.children = scene.children.filter(c => c.type === "GridHelper" || c.type === "AmbientLight");
+        gridHelper.visible = false; // Esconde o grid na hora de jogar
+        runtimeData.forEach(o => {
+            if(o.type === 'ui_btn') return;
+            let geo = (o.type === 'sprite') ? new THREE.PlaneGeometry(1, 1) : new THREE.BoxGeometry(1,1,1);
+            let mat = new THREE.MeshStandardMaterial({ color: o.color, side: o.type === 'sprite' ? THREE.DoubleSide : THREE.FrontSide });
+            o.mesh = new THREE.Mesh(geo, mat);
+            scene.add(o.mesh);
+        });
+    }
+
+    function renderGUI(layerId) {
+        const layer = document.getElementById(layerId); layer.innerHTML = "";
+        runtimeData.forEach(o => {
+            if(o.type === 'ui_btn') {
+                const b = document.createElement('div');
+                b.className = "mobile-btn";
+                b.style.left = o.x + "%"; b.style.top = o.y + "%";
+                b.style.width = "70px"; b.style.height = "70px";
+                b.innerText = o.name.substring(0,4);
+                b.onmousedown = b.ontouchstart = () => runScript(o);
+                layer.appendChild(b);
+            }
+        });
+    }
+
+    // --- 8. API DE SCRIPT & CÂMERA ---
+    function runScript(o) {
+        if(!isPlaying) return;
+        const api = {
+            input: (k) => keys[k],
+            move: (dx, dy, dz) => { 
+                o.x+=dx; o.y+=dy; o.z+=dz; 
+                if(o.type==='player') db.ref('omni_hybrid/'+gameId+'/players/'+myPlayerId).update({x:o.x, y:o.y, z:o.z}); 
+            },
+            camFollow: () => { 
+                // Câmera segue diferente dependendo do modo!
+                if(project.is2D) camera.position.lerp(new THREE.Vector3(o.x, o.y, 15), 0.1);
+                else camera.position.lerp(new THREE.Vector3(o.x, o.y+5, o.z+8), 0.1); 
+                camera.lookAt(o.x, o.y, o.z); 
+            },
+            lookAtCam: () => { if(o.mesh) o.mesh.quaternion.copy(camera.quaternion); },
+            chat: (m) => sendChat(m)
+        };
+        try { new Function('api', o.script).bind(o)(api); } catch(e){}
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const target = isPlaying ? document.getElementById('player-target') : document.getElementById('render-target');
+        if(renderer.domElement.parentElement !== target) target.appendChild(renderer.domElement);
+        
+        renderer.setSize(target.clientWidth, target.clientHeight);
+        camera.aspect = target.clientWidth / target.clientHeight;
+        camera.updateProjectionMatrix();
+
+        const activeList = isPlaying ? runtimeData : project.objects;
+        activeList.forEach(o => {
+            if(o.mesh) {
+                o.mesh.position.set(o.x, o.y, o.z);
+                o.mesh.rotation.set(o.rx, o.ry, o.rz);
+                if(isPlaying) runScript(o);
+            }
+        });
+        renderer.render(scene, camera);
+    }
+
+    // --- 9. MULTIPLAYER CHAT E PLAYERS ---
+    let netMeshes = {};
+    function updateNetPlayers(players) {
+        if(!players) return;
+        Object.keys(players).forEach(id => {
+            if(id === myPlayerId) return;
+            const p = players[id];
+            if(!netMeshes[id]) {
+                netMeshes[id] = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({color: 0xff0055}));
+                scene.add(netMeshes[id]);
+            }
+            netMeshes[id].position.set(p.x, p.y, p.z);
+        });
+        Object.keys(netMeshes).forEach(id => { if(!players[id]) { scene.remove(netMeshes[id]); delete netMeshes[id]; } });
+    }
+
+    function sendChat(msg = null) {
+        const text = msg || document.getElementById('chat-input').value;
+        if(text.trim() && gameId !== "local") {
+            db.ref('omni_hybrid/'+gameId+'/chat').push({ n: currentUser.name, m: text });
+            document.getElementById('chat-input').value = "";
+        }
+    }
+    function addChat(n, m) {
+        const box = document.getElementById('chat-messages');
+        box.innerHTML += `<div><b style="color:var(--accent)">${n}:</b> ${m}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // --- 10. HUB GLOBAL ---
+    async function publish() {
+        const t = prompt("Nome do Projeto (Ex: Meu Mario 2D ou Meu Minecraft 3D):");
+        if(t) {
+            // Salva a dimensão junto com o projeto!
+            await db.ref('omni_hybrid_hub').push({ title: t, author: currentUser.name, content: JSON.stringify(project.objects), is2D: project.is2D });
+            alert("PROJETO PUBLICADO NA NUVEM!");
+        }
     }
 
     function loadHub() {
-        db.ref('omni_hub_master').limitToLast(20).once('value', s => {
+        db.ref('omni_hybrid_hub').once('value', s => {
             const grid = document.getElementById('hub-grid'); grid.innerHTML = "";
             if(s.val()) Object.entries(s.val()).forEach(([id, g]) => {
-                const c = document.createElement('div'); c.className = "list-item";
-                c.innerHTML = `<b style="font-size:14px; color:var(--accent)">${g.title}</b><br><small>Criado por: ${g.author}</small><br><br><button class="btn" style="width:100%; padding:5px;">JOGAR</button>`;
-                c.onclick = () => { project = JSON.parse(g.data); switchScreen('engine-screen'); updateSceneList(); updateHierarchy(); };
+                const badge = g.is2D ? `<span class="dim-badge" style="background:#ff0055">2D</span>` : `<span class="dim-badge" style="background:#00e5ff;color:#000">3D</span>`;
+                const c = document.createElement('div'); c.className = "card";
+                c.innerHTML = `<h3 style="color:var(--text)">${g.title} ${badge}</h3><p style="opacity:0.5; margin-top:5px;">Criador: ${g.author}</p><button class="btn" style="width:100%;margin-top:15px;background:var(--success);color:#000;">JOGAR ONLINE</button>`;
+                // Ao clicar, envia os objetos, o ID da sala, e avisa a Engine se é 2D ou 3D
+                c.onclick = () => testGame(JSON.parse(g.content), id, g.is2D); 
                 grid.appendChild(c);
             });
         });
     }
 
-    function togglePanel(id) {
-        const el = document.getElementById(id);
-        const isOpen = el.classList.contains('panel-open');
-        closePanels();
-        if(!isOpen) {
-            el.classList.add('panel-open');
-            document.getElementById('overlay').style.display = 'block';
-        }
+    function switchScreen(id) { 
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen')); 
+        document.getElementById(id).classList.add('active-screen'); 
+        if(id === 'hub-screen') loadHub(); 
+        if(id === 'engine-screen') gridHelper.visible = true; // Volta o grid no editor
     }
 
-    function closePanels() {
-        document.querySelectorAll('.side-panel, .inspector').forEach(p => p.classList.remove('panel-open'));
-        document.getElementById('overlay').style.display = 'none';
-    }
-
-    function openWin(id) { document.getElementById(id).style.display = 'block'; }
-    function closeWin(id) { document.getElementById(id).style.display = 'none'; }
-
-    // INPUTS
     window.onkeydown = e => keys[e.key.toLowerCase()] = true;
     window.onkeyup = e => keys[e.key.toLowerCase()] = false;
-    
-    // START
-    updateSceneList(); updateHierarchy(); loop();
 </script>
 </body>
 </html>
